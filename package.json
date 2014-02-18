@@ -1,0 +1,7 @@
+{
+  "name": "transifexify",
+  "dependencies": {
+    "colors": "~0.6.2",
+    "mime": "~1.2.11"
+  }
+}
