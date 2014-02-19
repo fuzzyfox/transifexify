@@ -90,7 +90,7 @@
 		form.innerHTML += '<button id="transifexifyClose" class="btn btn-primary btn-lg pull-right">done</button>';
 
 		document.querySelector('#transifexifyClose').addEventListener('click', function(){
-			document.documentElement.innerHTML = preFinishTransifexHTML;
+			window.location.reload();
 		});
 		return false;
 	});
