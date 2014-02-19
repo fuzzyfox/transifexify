@@ -22,7 +22,7 @@
 	// remove all whitespace from element to tidy results from textNodesUnder
 	// of all the whitespace in source.
 	document.querySelector(selector).innerHTML = document.querySelector(selector).innerHTML.replace(/\s+/g, ' ').trim();
-
+	
 	var nodes = [],
 		transifexJSON = {},
 		transifexHTML = '<html>';

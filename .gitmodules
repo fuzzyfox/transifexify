@@ -1,0 +1,3 @@
+[submodule "makerstrap"]
+	path = makerstrap
+	url = https://github.com/mozilla/makerstrap.git
