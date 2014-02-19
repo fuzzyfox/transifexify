@@ -15,7 +15,7 @@
 
 	<script>
 		// make bookmarklet serve from current domain
-		document.querySelector('#bookmarklet').href = document.querySelector('#bookmarklet').href.replace(/http:\/\/localhost:8000/g, location.protocol + '//' + location.host);
+		document.querySelector('#bookmarklet').href = document.querySelector('#bookmarklet').href.replace(/http:\/\/localhost:8000/g, location.protocol + '//' + location.host + location.pathname.substring(0, location.pathname.lastIndexOf("/")));
 	</script>
 </body>
 </html>
