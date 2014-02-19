@@ -41,7 +41,10 @@ if (!gotPath) {
 
 // still here? filename is good
 // look up the mime type by file extension
-response.writeHead(200, {'Content-Type': mime.lookup(filename)});
+response.writeHead(200, {
+	'Content-Type': mime.lookup(filename),
+	'Access-Control-Allow-Origin': "*"
+});
 // read and pass the file as a stream. Not really sure if this is better,
 // but it feels less block-ish than reading the whole file
 // and we get to do awesome things with listeners
