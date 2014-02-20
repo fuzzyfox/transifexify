@@ -6,12 +6,32 @@
 	<link rel="stylesheet" href="http://fonts.googleapis.com/css?family=Open+Sans:300italic,400italic,700italic,400,300,700">
 	<link rel="stylesheet" href="http://netdna.bootstrapcdn.com/font-awesome/4.0.3/css/font-awesome.css">
 	<link rel="stylesheet" href="./makerstrap/makerstrap.min.css">
+	<style>
+		body {
+			padding-top: 50px;
+		}
+	</style>
 </head>
-<body class="container">
-	<h1>Transifexify</h1>
-	<p>A simple bookmarklet that does the leg work to make ready a webpage of localization.</p>
-	<a href="javascript:(function(window, document, undefined){var xhr = new XMLHttpRequest();xhr.open('GET', 'http://localhost:8000/transifexify.html');xhr.onload = function(e){if(xhr.readyState === 4 %26%26 xhr.status === 200){var link = document.createElement('link');link.rel = 'stylesheet';link.href = 'http://localhost:8000/transifexify.css';document.head.innerHTML = link.outerHTML + document.head.innerHTML;document.body.innerHTML = '<div id=\'transifexifyDocument\'>'+ document.body.innerHTML +'</div>';document.body.innerHTML += xhr.responseText;var script = document.createElement('script');script.src = 'http://localhost:8000/transifexify-sidebar.js';document.body.appendChild(script);document.querySelector('#transifexify').style.width = '30%';}else {console.log('Failed to load sidebar: ', xhr, e);var script = document.createElement('script');script.src = 'http://localhost:8000/transifexify.js';document.body.appendChild('script');}};xhr.send();})(window, window.document);" class="btn btn-info btn-lg" id="bookmarklet">Transifexify</a>
-	<p>Drag the button above into your bookmark toolbar, navigate to a page, and click to use.</p>
+<body>
+	<nav class="navbar navbar-inverse navbar-fixed-top" role="navigation">
+		<div class="container">
+			<div class="navbar-header">
+				<a href="./" class="navbar-brand">Transifexify</a>
+			</div>
+			<div style="height: 0px;padding: 0 15px 0 15px">
+				<ul class="nav navbar-nav navbar-right">
+					<li style="margin:0;"><a href="https://github.com/fuzzyfox/transifexify"><span class="fa fa-github"></span> fuzzyfox/transifexify</a></li>
+				</ul>
+			</div>
+		</div>
+	</nav>
+
+	<main class="container">
+		<h1>Transifexify</h1>
+		<p>A simple bookmarklet that does the leg work to make ready a webpage of localization.</p>
+		<a href="javascript:(function(window,document,undefined){if(!window.transifexifyAdded){var%20xhr=new%20XMLHttpRequest();xhr.open('GET','http://localhost:8000/transifexify.html');xhr.onload=function(e){if(xhr.readyState===4%26%26xhr.status===200){var%20link=document.createElement('link');link.rel='stylesheet';link.href='http://localhost:8000/transifexify.css';document.head.innerHTML=link.outerHTML+document.head.innerHTML;document.body.innerHTML='<div%20id=\'transifexifyDocument\'>'+document.body.innerHTML+'</div>';document.body.innerHTML+=xhr.responseText;var%20script=document.createElement('script');script.src='http://localhost:8000/transifexify-sidebar.js';document.body.appendChild(script);}else{console.log('Failed%20to%20load%20sidebar:',xhr,e);var%20script=document.createElement('script');script.src='http://localhost:8000/transifexify.js';document.body.appendChild('script');}window.transifexifyAdded=true;};xhr.send();}})(window,window.document);" class="btn btn-info btn-lg" id="bookmarklet">Transifexify</a>
+		<p>Drag the button above into your bookmark toolbar, navigate to a page, and click to use.</p>
+	</main>
 
 	<script>
 		// make bookmarklet serve from current domain
