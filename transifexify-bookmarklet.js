@@ -1,4 +1,15 @@
 (function(window, document, undefined){
+	var bookmarkletBootstrapper = document.querySelector('script[rel=transifexify]');
+	var urlParser = document.createElement('a');
+	urlParser.href = bookmarkletBootstrapper.src;
+	console.log(urlParser);
+	var link = document.createElement('link');
+		link.rel = 'stylesheet';
+		link.href = '//' + urlParser.host + urlParser.pathname.substr(0, urlParser.pathname.lastIndexOf('/')) + '/transifexify.css';
+	document.head.innerHTML = link.outerHTML + document.head.innerHTML;
+	document.body.innerHTML = '<div id="transifexifyDocument">'+ document.body.innerHTML +'</div>';
+	document.body.innerHTML += '<div id="transifexify"><nav class="navbar navbar-inverse" role="navigation"><div class="navbar-header"><span class="navbar-brand">Transifexify</span></div><div style="height: 0px;padding: 0 15px 0 15px"><ul class="nav navbar-nav navbar-right"><li style="margin:0;"><a href="https://github.com/fuzzyfox/transifexify"><span class="fa fa-github"></span> fuzzyfox/transifexify</a></li></ul></div></nav><p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Neque, cupiditate.</p><form action="#" class="form clearfix" id="transifexifyForm"></form></div>';
+
 	// finds all text nodes in a given element and its children
 	var textNodesUnder = function(element){
 		var node,
