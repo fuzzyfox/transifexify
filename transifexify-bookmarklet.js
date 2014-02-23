@@ -1,23 +1,35 @@
-(function(window, document, undefined){
-	var bookmarkletBootstrapper = document.querySelector('script[rel=transifexify]');
-	var urlParser = document.createElement('a');
-	urlParser.href = bookmarkletBootstrapper.src;
-	console.log(urlParser);
-	var link = document.createElement('link');
-		link.rel = 'stylesheet';
-		link.href = '//' + urlParser.host + urlParser.pathname.substr(0, urlParser.pathname.lastIndexOf('/')) + '/transifexify.css';
-	document.head.innerHTML = link.outerHTML + document.head.innerHTML;
-	document.body.innerHTML = '<div id="transifexifyDocument">'+ document.body.innerHTML +'</div>';
-	document.body.innerHTML += '<div id="transifexify"><nav class="navbar navbar-inverse" role="navigation"><div class="navbar-header"><span class="navbar-brand">Transifexify</span></div><div style="height: 0px;padding: 0 15px 0 15px"><ul class="nav navbar-nav navbar-right"><li style="margin:0;"><a href="https://github.com/fuzzyfox/transifexify"><span class="fa fa-github"></span> fuzzyfox/transifexify</a></li></ul></div></nav><p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Neque, cupiditate.</p><form action="#" class="form clearfix" id="transifexifyForm"></form></div>';
+var Transifexify = window.Transifexify = (function(window, document, undefined){
 
-	// finds all text nodes in a given element and its children
-	var textNodesUnder = function(element){
-		var node,
+	var Transifexify = function(selector){
+		return new Transifexify.prototype.init(selector);
+	};
+
+	Transifexify.version = '0.0.3';
+
+	var namedNodes = {},
+		allNodes   = [];
+
+    // Array Remove - By John Resig (MIT Licensed)
+	if(!Array.prototype.remove) Array.prototype.remove = function(from, to) {
+		var rest = this.slice((to || from) + 1 || this.length);
+		this.length = from < 0 ? this.length + from : from;
+		return this.push.apply(this, rest);
+	};
+
+	/**
+	 * Get all non-whitespace text nodes under a specified element
+	 * @param  {Element} element    the Element to get textnodes from
+	 * @param  {Array}   exemptions	Array of HTMLElements to remove from search
+	 * @return {Array}              Array of text nodes
+	 */
+	Transifexify.getTextNodes = function(element, exemptions){
+		var walk = document.createTreeWalker(element, window.NodeFilter.SHOW_TEXT, null, false),
 			all  = [],
-			walk = document.createTreeWalker(element, window.NodeFilter.SHOW_TEXT, null, false);
+			node;
 
 		while(node = walk.nextNode()){
 			node.nodeValue = node.nodeValue.trim();
+
 			if((node.nodeValue !== '') && (node.parentNode.nodeName !== 'SCRIPT')){
 				all.push(node);
 			}
@@ -26,83 +38,165 @@
 		return all;
 	};
 
-	// get the selector for the element we want to prep for localization
-	var selector = '#transifexifyDocument';
+	Transifexify.fn = Transifexify.prototype = {
+		init: function(selector){
+			allNodes = Transifexify.getTextNodes(document.querySelector(selector));
+		},
 
-	document.querySelector(selector).innerHTML = document.querySelector(selector).innerHTML.replace(/<script(.*?)>(.*?)<\/script>/g, '');
+		/**
+		 * Name text nodes for generation of nunjucks template file
+		 *
+		 * Additionally this adds nodes to an internal list of named nodes. This 
+		 * can be accessed with `transifexify.getNamedNodes()`.
+		 * @param  {Node}   node        the text node to name
+		 * @param  {String} replacement replacement string for text node value
+		 * @return {Node}               a reference to the node passed in
+		 */
+		nameNode: function(node, replacement){
+			// check if we've already named this node, if so lets remove it
+			// from the list of named nodes, and reset its value.
+			this.unnameNode(node);
 
-	// remove all whitespace from element to tidy results from textNodesUnder
-	// of all the whitespace in source.
-	document.querySelector(selector).innerHTML = document.querySelector(selector).innerHTML.replace(/\s+/g, ' ').trim();
+			if(replacement.trim() !== ''){
+				// add node to named nodes list
+				namedNodes[replacement.trim()] = node.nodeValue;
+				
+				// update node value
+				node.nodeValue = '{{ ' + replacement.trim() + ' }}';
+			}
+			
+			return node;
+		},
 
-	var nodes = [],
-		form  = document.querySelector('#transifexifyForm'),
-		transifexJSON = {},
-		transifexHTML = '';
+		/**
+		 * Reset original node value, and remove from named nodes list.
+		 * @param  {Node} node the node to reset + remove from list
+		 * @return {Node}      reset node
+		 */
+		unnameNode: function(node){
+			var nodeName = node.nodeValue.substr(3, node.nodeValue.length - 6);
+			if(namedNodes.hasOwnProperty(nodeName)){
+				var originalValue = namedNodes[nodeName];
 
-	// get all text nodes for defined element
-	nodes = textNodesUnder(document.querySelector(selector));
+				/*
+				 before we remove this from the key:value from the named 
+				 node list check there are no more nodes using it
+				*/
+				
+				// start count at -1 as we want to count other nodes 
+				// besides the one we know we have
+				var nodeCount = -1;
+				for(var i = 0, j = allNodes.length; i < j; i++){
+					if(allNodes[i].nodeValue === nodeName) {
+						nodeCount++;
+					}
+				}
 
-	// go through each text node we found and give it a sensible name, add 
-	// the contents of that node to a JSON file as {name:node.nodeValue}, and 
-	// swap the node value in the DOM for the name we gave it
-	nodes.forEach(function(node, idx){
+				// if there is only this node w. the key:value remove
+				// it from namedNodes
+				if(nodeCount){
+					delete namedNodes[nodeName];
+				}
+
+				// no matter what we do want to return the given node
+				// back to its original value
+				node.nodeValue = originalValue;
+			}
+
+			return node;
+		},
+
+		getNamedNodes: function(){
+			return (JSON.parse(JSON.stringify(namedNodes)));
+		},
+
+		getAllNodes: function(){
+			var rtn = [];
+
+			allNodes.forEach(function(node){
+				rtn.push(node.cloneNode());
+			});
+
+			return rtn;
+		},
+
+		getTemplateSource: function(){
+			var source = document.documentElement.innerHTML;
+
+				if(document.querySelector('#transifexify')){
+					source = source.replace(document.body.innerHTML, document.querySelector('#transifexifyDocument').innerHTML);
+					source = source.replace(document.querySelector('#transifexify').outerHTML, '');
+				}
+
+				source = source.replace(/<script(.*?)rel="transifexify"(.*?)>(.*?)<\/script>/, '');
+				source = source.replace(/<link(.*?)href="(.*?)transifexify.css"(.*?)>/, '');
+				source = '<html>' + source + '</html>';
+
+			return source;
+		},
+
+		getTransifexJSON: function(){
+			return this.getNamedNodes();
+		}
+	};
+
+	// Extend the constructor to allow chaining methods to instances
+	Transifexify.prototype.init.prototype = Transifexify.prototype;
+
+	return Transifexify;
+}(this, this.document));
+
+/* jshint multistr: true */
+(function(window, document, undefined){
+	// Inject CSS
+	var urlParser = document.createElement('a');
+	urlParser.href = document.querySelector('script[rel="transifexify"]').src;
+
+	var link = document.createElement('link');			
+	link.href = '//' + urlParser.host + urlParser.pathname.substr(0, urlParser.pathname.lastIndexOf('/')) + '/transifexify.css';
+	link.setAttribute('rel', 'stylesheet');
+
+	document.head.insertBefore(link, document.head.firstChild);
+
+	// Wrap body with custom DIV
+	document.body.innerHTML = '<div id="transifexifyDocument">' + document.body.innerHTML + '</div>';
+
+	// Inject sidebar HTML
+	document.body.innerHTML += '<div id="transifexify">\
+									<nav class="navbar navbar-inverse" role="navigation">\
+										<div class="navbar-header">\
+											<span class="navbar-brand">Transifexify</span>\
+										</div>\
+										<div style="height: 0px;padding: 0 15px 0 15px">\
+											<ul class="nav navbar-nav navbar-right">\
+												<li style="margin:0;">\
+													<a href="https://github.com/fuzzyfox/transifexify">\
+														<span class="fa fa-github"></span> fuzzyfox/transifexify\
+													</a>\
+												</li>\
+											</ul>\
+										</div>\
+									</nav>\
+									<p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Neque, cupiditate.</p>\
+									<form action="#" class="form clearfix" id="transifexifyForm"></form>\
+								</div>';
+
+	// Get own Transifexify object for use by sidebar
+	var T    = new window.Transifexify('body'),
+	// Get quick access to the form
+		form = document.querySelector('#transifexifyForm');
+
+	// Build form
+	T.getAllNodes().forEach(function(node, idx){
+		console.log(node);
 		form.innerHTML += '<div class="form-group">\
 								<input type="text" name="node-'+idx+'" class="form-control input-md"/>\
 								<div class="nodeValue">'+node.nodeValue+'</div>\
 							</div>';
 	});
-
-	// add next button
 	form.innerHTML += '<button type="submit" class="btn btn-primary btn-lg pull-right">next</button>';
 
-	// add listeners to each new form element to modify DOM with string names when entered
-	var inputs = document.querySelectorAll('#transifexifyForm input[name^=node-]');
-	Array.prototype.filter.call(inputs, function(input){
-		input.addEventListener('keyup', function(e){
-			var idx = parseInt(this.name.substr(5), 10);
-			if(this.value.trim() !== ''){
-				nodes[idx].nodeValue = '{{ ' + this.value.trim() + ' }}';
-			}
-			else {
-				nodes[idx].nodeValue = this.nextElementSibling.innerHTML;
-			}
-		});
-	});
-
-	// add listener to form submit
-	form.addEventListener('submit', function(e){
-		// stop form submit
-		e.preventDefault();
-
-		Array.prototype.filter.call(inputs, function(input){
-			if(input.value.trim() !== ''){
-				transifexJSON[input.value.trim()] = input.nextElementSibling.innerHTML;
-			}
-		});
-
-		// remove transifexify added content
-		transifexHTML = document.documentElement.innerHTML.replace(/<script src="http(s?):\/\/(.*?)\/transifexify-sidebar\.js"><\/script>/, '');
-		transifexHTML = document.documentElement.innerHTML.replace(/<link href="http(s?):\/\/(.*?)\/transifexify\.css" rel="stylesheet">/, '');
-		transifexHTML = document.documentElement.innerHTML.replace(document.querySelector('#transifexify').outerHTML, '');
-		transifexHTML = document.documentElement.innerHTML.replace(document.body.innerHTML, document.querySelector('#transifexifyDocument').innerHTML);
-		preFinishTransifexHTML = transifexHTML; // for close function
-		transifexHTML = '<html>' + transifexHTML + '</html>';
-
-		form.innerHTML = '<div class="form-group">\
-								<label for="" class="control-label"></label>\
-								<textarea rows="10" name="transifexJSON" class="form-control input-md">'+ JSON.stringify(transifexJSON) +'</textarea>\
-							</div>';
-		form.innerHTML += '<div class="form-group">\
-								<label for="" class="control-label"></label>\
-								<textarea rows="10" name="transifexHTML" class="form-control input-md">'+ transifexHTML +'</textarea>\
-							</div>';
-
-		form.innerHTML += '<button id="transifexifyClose" class="btn btn-primary btn-lg pull-right">done</button>';
-
-		document.querySelector('#transifexifyClose').addEventListener('click', function(){
-			window.location.reload();
-		});
-		return false;
-	});
+	// Add event listeners (delegation used)
+	
 })(this, this.document);
+

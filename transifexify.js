@@ -1,14 +1,36 @@
-(function(window, document, undefined){
+var Transifexify = window.Transifexify = (function(window, document, undefined){
 
-	// finds all text nodes in a given element and its children
-	var textNodesUnder = function(element){
-		var node,
+	var Transifexify = function(selector){
+		return new Transifexify.prototype.init(selector);
+	};
+
+	Transifexify.version = '0.0.3';
+
+	var namedNodes = {},
+		allNodes   = [];
+
+    // Array Remove - By John Resig (MIT Licensed)
+	if(!Array.prototype.remove) Array.prototype.remove = function(from, to) {
+		var rest = this.slice((to || from) + 1 || this.length);
+		this.length = from < 0 ? this.length + from : from;
+		return this.push.apply(this, rest);
+	};
+
+	/**
+	 * Get all non-whitespace text nodes under a specified element
+	 * @param  {Element} element    the Element to get textnodes from
+	 * @param  {Array}   exemptions	Array of HTMLElements to remove from search
+	 * @return {Array}              Array of text nodes
+	 */
+	Transifexify.getTextNodes = function(element, exemptions){
+		var walk = document.createTreeWalker(element, window.NodeFilter.SHOW_TEXT, null, false),
 			all  = [],
-			walk = document.createTreeWalker(element, window.NodeFilter.SHOW_TEXT, null, false);
+			node;
 
 		while(node = walk.nextNode()){
 			node.nodeValue = node.nodeValue.trim();
-			if(node.nodeValue !== ''){
+
+			if((node.nodeValue !== '') && (node.parentNode.nodeName !== 'SCRIPT')){
 				all.push(node);
 			}
 		}
@@ -16,35 +38,110 @@
 		return all;
 	};
 
-	// get the selector for the element we want to prep for localization
-	var selector = window.prompt('Enter a selector to Transifexify');
+	Transifexify.fn = Transifexify.prototype = {
+		init: function(selector){
+			allNodes = Transifexify.getTextNodes(document.querySelector(selector));
+		},
 
-	// remove all whitespace from element to tidy results from textNodesUnder
-	// of all the whitespace in source.
-	document.querySelector(selector).innerHTML = document.querySelector(selector).innerHTML.replace(/\s+/g, ' ').trim();
-	
-	var nodes = [],
-		transifexJSON = {},
-		transifexHTML = '<html>';
+		/**
+		 * Name text nodes for generation of nunjucks template file
+		 *
+		 * Additionally this adds nodes to an internal list of named nodes. This 
+		 * can be accessed with `transifexify.getNamedNodes()`.
+		 * @param  {Node}   node        the text node to name
+		 * @param  {String} replacement replacement string for text node value
+		 * @return {Node}               a reference to the node passed in
+		 */
+		nameNode: function(node, replacement){
+			// check if we've already named this node, if so lets remove it
+			// from the list of named nodes, and reset its value.
+			this.unnameNode(node);
 
-	// get all text nodes for defined element
-	nodes = textNodesUnder(document.querySelector(selector));
+			if(replacement.trim() !== ''){
+				// add node to named nodes list
+				namedNodes[replacement.trim()] = node.nodeValue;
+				
+				// update node value
+				node.nodeValue = '{{ ' + replacement.trim() + ' }}';
+			}
+			
+			return node;
+		},
 
-	// go through each text node we found and give it a sensible name, add 
-	// the contents of that node to a JSON file as {name:node.nodeValue}, and 
-	// swap the node value in the DOM for the name we gave it
-	nodes.forEach(function(node, idx){
-		transifexJSON['node' + idx + '-' + node.parentNode.localName] = node.nodeValue;
-		node.nodeValue = '{{ node' + idx + '-' + node.parentNode.localName + ' }}';
-	});
+		/**
+		 * Reset original node value, and remove from named nodes list.
+		 * @param  {Node} node the node to reset + remove from list
+		 * @return {Node}      reset node
+		 */
+		unnameNode: function(node){
+			var nodeName = node.nodeValue.substr(3, node.nodeValue.length - 6);
+			if(namedNodes.hasOwnProperty(nodeName)){
+				var originalValue = namedNodes[nodeName];
 
-	// show transifex json file to user for saving
-	window.showModalDialog('data:application/json;' + (window.btoa?'base64,'+btoa(JSON.stringify(transifexJSON)):JSON.stringify(transifexJSON)), null, 'center:1;dialogwidth:600;dialogheight:600');
+				/*
+				 before we remove this from the key:value from the named 
+				 node list check there are no more nodes using it
+				*/
+				
+				// start count at -1 as we want to count other nodes 
+				// besides the one we know we have
+				var nodeCount = -1;
+				for(var i = 0, j = allNodes.length; i < j; i++){
+					if(allNodes[i].nodeValue === nodeName) {
+						nodeCount++;
+					}
+				}
 
-	// strip out transifexify tag from document
-	transifexHTML += document.documentElement.innerHTML.replace(/<script src="https?:\/\/(.*?)\/transifexify\.js"><\/script>/, '');
-	transifexHTML += '</html>';
+				// if there is only this node w. the key:value remove
+				// it from namedNodes
+				if(nodeCount){
+					delete namedNodes[nodeName];
+				}
 
-	// show modified HTML document source to user for saving
-	window.showModalDialog('data:text/plain;' + (window.btoa?'base64,'+btoa(transifexHTML):transifexHTML), null, 'center:1;dialogwidth:600;dialogheight:600');
-})(this, this.document);
+				// no matter what we do want to return the given node
+				// back to its original value
+				node.nodeValue = originalValue;
+			}
+
+			return node;
+		},
+
+		getNamedNodes: function(){
+			return (JSON.parse(JSON.stringify(namedNodes)));
+		},
+
+		getAllNodes: function(){
+			var rtn = [];
+
+			allNodes.forEach(function(node){
+				rtn.push(node.cloneNode());
+			});
+
+			return rtn;
+		},
+
+		getTemplateSource: function(){
+			var source = document.documentElement.innerHTML;
+
+				if(document.querySelector('#transifexify')){
+					source = source.replace(document.body.innerHTML, document.querySelector('#transifexifyDocument').innerHTML);
+					source = source.replace(document.querySelector('#transifexify').outerHTML, '');
+				}
+
+				source = source.replace(/<script(.*?)rel="transifexify"(.*?)>(.*?)<\/script>/, '');
+				source = source.replace(/<link(.*?)href="(.*?)transifexify.css"(.*?)>/, '');
+				source = '<html>' + source + '</html>';
+
+			return source;
+		},
+
+		getTransifexJSON: function(){
+			return this.getNamedNodes();
+		}
+	};
+
+	// Extend the constructor to allow chaining methods to instances
+	Transifexify.prototype.init.prototype = Transifexify.prototype;
+
+	return Transifexify;
+}(this, this.document));
