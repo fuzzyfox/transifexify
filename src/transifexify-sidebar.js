@@ -1,5 +1,11 @@
 /* jshint multistr: true */
 (function(window, document, undefined){
+	// prevent multiple instances of the sidebar
+	if(window.TransifexifySidebar){
+		return;
+	}
+	window.TransifexifySidebar = true;
+	
 	// Inject CSS
 	var urlParser = document.createElement('a');
 	urlParser.href = document.querySelector('script[rel="transifexify"]').src;
@@ -34,13 +40,12 @@
 								</div>';
 
 	// Get own Transifexify object for use by sidebar
-	var T    = new window.Transifexify('body'),
+	var T    = new window.Transifexify('#transifexifyDocument'),
 	// Get quick access to the form
 		form = document.querySelector('#transifexifyForm');
 
 	// Build form
 	T.getAllNodes().forEach(function(node, idx){
-		console.log(node);
 		form.innerHTML += '<div class="form-group">\
 								<input type="text" name="node-'+idx+'" class="form-control input-md"/>\
 								<div class="nodeValue">'+node.nodeValue+'</div>\
@@ -49,5 +54,36 @@
 	form.innerHTML += '<button type="submit" class="btn btn-primary btn-lg pull-right">next</button>';
 
 	// Add event listeners (delegation used)
-	
+	form.addEventListener('keyup', function(event){
+		// deal with node naming (input fields)
+		if(event.target.nodeName === 'INPUT'){
+			var input = event.target,
+				idx = parseInt(input.name.substr(5), 10);
+			T.nameNode(idx, input.value.trim());
+		}
+	});
+	form.addEventListener('submit', function(event){
+		// stop form submit
+		event.preventDefault();
+
+		// update sidebar to show outputs
+		form.innerHTML = '<div class="form-group">\
+								<label for="" class="control-label"></label>\
+								<textarea rows="10" name="transifexJSON" class="form-control input-md">'+ T.getTransifexJSON() +'</textarea>\
+							</div>';
+		form.innerHTML += '<div class="form-group">\
+								<label for="" class="control-label"></label>\
+								<textarea rows="10" name="transifexHTML" class="form-control input-md">'+ T.getTemplateSource() +'</textarea>\
+							</div>';
+
+		form.innerHTML += '<button id="transifexifyClose" class="btn btn-primary btn-lg pull-right">done</button>';
+
+		// add listener to the done button
+		document.querySelector('#transifexifyClose').addEventListener('click', function(){
+			window.location.reload();
+		});
+
+		return false;
+	});
+
 })(this, this.document);

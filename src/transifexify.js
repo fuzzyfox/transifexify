@@ -48,14 +48,15 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		 *
 		 * Additionally this adds nodes to an internal list of named nodes. This 
 		 * can be accessed with `transifexify.getNamedNodes()`.
-		 * @param  {Node}   node        the text node to name
+		 * @param  {Node}   nodeIndex   index (from allNodes) of the text node to name
 		 * @param  {String} replacement replacement string for text node value
 		 * @return {Node}               a reference to the node passed in
 		 */
-		nameNode: function(node, replacement){
+		nameNode: function(nodeIndex, replacement){
+			var node = allNodes[nodeIndex];
 			// check if we've already named this node, if so lets remove it
 			// from the list of named nodes, and reset its value.
-			this.unnameNode(node);
+			this.unnameNode(nodeIndex);
 
 			if(replacement.trim() !== ''){
 				// add node to named nodes list
@@ -65,16 +66,17 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 				node.nodeValue = '{{ ' + replacement.trim() + ' }}';
 			}
 			
-			return node;
+			return node.cloneNode();
 		},
 
 		/**
 		 * Reset original node value, and remove from named nodes list.
-		 * @param  {Node} node the node to reset + remove from list
-		 * @return {Node}      reset node
+		 * @param  {Node} nodeIndex index (from allNodes) of the node to reset + remove from list
+		 * @return {Node}           reset node
 		 */
-		unnameNode: function(node){
-			var nodeName = node.nodeValue.substr(3, node.nodeValue.length - 6);
+		unnameNode: function(nodeIndex){
+			var node     = allNodes[nodeIndex],
+				nodeName = node.nodeValue.substr(3, node.nodeValue.length - 6);
 			if(namedNodes.hasOwnProperty(nodeName)){
 				var originalValue = namedNodes[nodeName];
 
@@ -103,7 +105,7 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 				node.nodeValue = originalValue;
 			}
 
-			return node;
+			return node.cloneNode();
 		},
 
 		getNamedNodes: function(){
@@ -136,7 +138,7 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		},
 
 		getTransifexJSON: function(){
-			return this.getNamedNodes();
+			return JSON.stringify(this.getNamedNodes());
 		}
 	};
 

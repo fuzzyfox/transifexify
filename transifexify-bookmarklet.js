@@ -48,14 +48,15 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		 *
 		 * Additionally this adds nodes to an internal list of named nodes. This 
 		 * can be accessed with `transifexify.getNamedNodes()`.
-		 * @param  {Node}   node        the text node to name
+		 * @param  {Node}   nodeIndex   index (from allNodes) of the text node to name
 		 * @param  {String} replacement replacement string for text node value
 		 * @return {Node}               a reference to the node passed in
 		 */
-		nameNode: function(node, replacement){
+		nameNode: function(nodeIndex, replacement){
+			var node = allNodes[nodeIndex];
 			// check if we've already named this node, if so lets remove it
 			// from the list of named nodes, and reset its value.
-			this.unnameNode(node);
+			this.unnameNode(nodeIndex);
 
 			if(replacement.trim() !== ''){
 				// add node to named nodes list
@@ -65,16 +66,17 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 				node.nodeValue = '{{ ' + replacement.trim() + ' }}';
 			}
 			
-			return node;
+			return node.cloneNode();
 		},
 
 		/**
 		 * Reset original node value, and remove from named nodes list.
-		 * @param  {Node} node the node to reset + remove from list
-		 * @return {Node}      reset node
+		 * @param  {Node} nodeIndex index (from allNodes) of the node to reset + remove from list
+		 * @return {Node}           reset node
 		 */
-		unnameNode: function(node){
-			var nodeName = node.nodeValue.substr(3, node.nodeValue.length - 6);
+		unnameNode: function(nodeIndex){
+			var node     = allNodes[nodeIndex],
+				nodeName = node.nodeValue.substr(3, node.nodeValue.length - 6);
 			if(namedNodes.hasOwnProperty(nodeName)){
 				var originalValue = namedNodes[nodeName];
 
@@ -103,7 +105,7 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 				node.nodeValue = originalValue;
 			}
 
-			return node;
+			return node.cloneNode();
 		},
 
 		getNamedNodes: function(){
@@ -136,7 +138,7 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		},
 
 		getTransifexJSON: function(){
-			return this.getNamedNodes();
+			return JSON.stringify(this.getNamedNodes());
 		}
 	};
 
@@ -148,6 +150,12 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 
 /* jshint multistr: true */
 (function(window, document, undefined){
+	// prevent multiple instances of the sidebar
+	if(window.TransifexifySidebar){
+		return;
+	}
+	window.TransifexifySidebar = true;
+	
 	// Inject CSS
 	var urlParser = document.createElement('a');
 	urlParser.href = document.querySelector('script[rel="transifexify"]').src;
@@ -182,13 +190,12 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 								</div>';
 
 	// Get own Transifexify object for use by sidebar
-	var T    = new window.Transifexify('body'),
+	var T    = new window.Transifexify('#transifexifyDocument'),
 	// Get quick access to the form
 		form = document.querySelector('#transifexifyForm');
 
 	// Build form
 	T.getAllNodes().forEach(function(node, idx){
-		console.log(node);
 		form.innerHTML += '<div class="form-group">\
 								<input type="text" name="node-'+idx+'" class="form-control input-md"/>\
 								<div class="nodeValue">'+node.nodeValue+'</div>\
@@ -197,6 +204,37 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 	form.innerHTML += '<button type="submit" class="btn btn-primary btn-lg pull-right">next</button>';
 
 	// Add event listeners (delegation used)
-	
+	form.addEventListener('keyup', function(event){
+		// deal with node naming (input fields)
+		if(event.target.nodeName === 'INPUT'){
+			var input = event.target,
+				idx = parseInt(input.name.substr(5), 10);
+			T.nameNode(idx, input.value.trim());
+		}
+	});
+	form.addEventListener('submit', function(event){
+		// stop form submit
+		event.preventDefault();
+
+		// update sidebar to show outputs
+		form.innerHTML = '<div class="form-group">\
+								<label for="" class="control-label"></label>\
+								<textarea rows="10" name="transifexJSON" class="form-control input-md">'+ T.getTransifexJSON() +'</textarea>\
+							</div>';
+		form.innerHTML += '<div class="form-group">\
+								<label for="" class="control-label"></label>\
+								<textarea rows="10" name="transifexHTML" class="form-control input-md">'+ T.getTemplateSource() +'</textarea>\
+							</div>';
+
+		form.innerHTML += '<button id="transifexifyClose" class="btn btn-primary btn-lg pull-right">done</button>';
+
+		// add listener to the done button
+		document.querySelector('#transifexifyClose').addEventListener('click', function(){
+			window.location.reload();
+		});
+
+		return false;
+	});
+
 })(this, this.document);
 

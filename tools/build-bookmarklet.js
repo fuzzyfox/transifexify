@@ -1,5 +1,5 @@
 var fs          = require('fs'),
-	parts       = ['transifexify.js', 'transifexify-sidebar.js'],
+	parts       = ['./src/transifexify.js', './src/transifexify-sidebar.js'],
 	bookmarklet = '';
 
 parts.forEach(function(e, i, a){
