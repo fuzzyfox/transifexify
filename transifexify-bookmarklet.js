@@ -1,3 +1,75 @@
+// target.addEventListener shim, hat tip [mdn](http://mzl.la/18ELrGJ)
+(function() {
+  if (!Event.prototype.preventDefault) {
+    Event.prototype.preventDefault=function() {
+      this.returnValue=false;
+    };
+  }
+  if (!Event.prototype.stopPropagation) {
+    Event.prototype.stopPropagation=function() {
+      this.cancelBubble=true;
+    };
+  }
+  if (!Element.prototype.addEventListener) {
+    var eventListeners=[];
+    
+    var addEventListener=function(type,listener /*, useCapture (will be ignored) */) {
+      var self=this;
+      var wrapper=function(e) {
+        e.target=e.srcElement;
+        e.currentTarget=self;
+        if (listener.handleEvent) {
+          listener.handleEvent(e);
+        } else {
+          listener.call(self,e);
+        }
+      };
+      if (type=="DOMContentLoaded") {
+        var wrapper2=function(e) {
+          if (document.readyState=="complete") {
+            wrapper(e);
+          }
+        };
+        document.attachEvent("onreadystatechange",wrapper2);
+        eventListeners.push({object:this,type:type,listener:listener,wrapper:wrapper2});
+        
+        if (document.readyState=="complete") {
+          var e=new Event();
+          e.srcElement=window;
+          wrapper2(e);
+        }
+      } else {
+        this.attachEvent("on"+type,wrapper);
+        eventListeners.push({object:this,type:type,listener:listener,wrapper:wrapper});
+      }
+    };
+    var removeEventListener=function(type,listener /*, useCapture (will be ignored) */) {
+      var counter=0;
+      while (counter<eventListeners.length) {
+        var eventListener=eventListeners[counter];
+        if (eventListener.object==this && eventListener.type==type && eventListener.listener==listener) {
+          if (type=="DOMContentLoaded") {
+            this.detachEvent("onreadystatechange",eventListener.wrapper);
+          } else {
+            this.detachEvent("on"+type,eventListener.wrapper);
+          }
+          break;
+        }
+        ++counter;
+      }
+    };
+    Element.prototype.addEventListener=addEventListener;
+    Element.prototype.removeEventListener=removeEventListener;
+    if (HTMLDocument) {
+      HTMLDocument.prototype.addEventListener=addEventListener;
+      HTMLDocument.prototype.removeEventListener=removeEventListener;
+    }
+    if (Window) {
+      Window.prototype.addEventListener=addEventListener;
+      Window.prototype.removeEventListener=removeEventListener;
+    }
+  }
+})();
 /**
  * JavaScript implementation of W3 DOM4 TreeWalker interface.
  *
@@ -472,6 +544,10 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 	 * @param  {Element} element    the Element to get textnodes from
 	 * @param  {Array}   exemptions	Array of HTMLElements to remove from search
 	 * @return {Array}              Array of text nodes
+	 *
+	 * TODO:
+	 *  + make exemptions do something ;)
+	 *  + improve the whitespace ignoring condition
 	 */
 	Transifexify.getTextNodes = function(element, exemptions){
 		var walk = document.createTreeWalker(element, window.NodeFilter.SHOW_TEXT, null, false),
@@ -559,10 +635,18 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 			return node.cloneNode();
 		},
 
+		/**
+		 * Get a copy of all the named nodes
+		 * @return {Object} a copy of the named nodes internal object
+		 */
 		getNamedNodes: function(){
 			return (JSON.parse(JSON.stringify(namedNodes)));
 		},
 
+		/**
+		 * Get a copy of all the nodes Transifexify cares about
+		 * @return {Array} array of cloned nodes
+		 */
 		getAllNodes: function(){
 			var rtn = [];
 
@@ -573,6 +657,10 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 			return rtn;
 		},
 
+		/**
+		 * Get the nunjucks template file
+		 * @return {String} HTML source for the nunjucks template
+		 */
 		getTemplateSource: function(){
 			var source = document.documentElement.innerHTML;
 
@@ -588,6 +676,10 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 			return source;
 		},
 
+		/**
+		 * Get the JSON key:value file used by Transifex/nunjucks
+		 * @return {String} JSON key:value file for document's strings
+		 */
 		getTransifexJSON: function(){
 			return JSON.stringify(this.getNamedNodes());
 		}

@@ -4,3 +4,6 @@
 [submodule "vendor/makerstrap"]
 	path = vendor/makerstrap
 	url = https://github.com/mozilla/makerstrap.git
+[submodule "vendor/EventTarget.addEventListener"]
+	path = vendor/EventTarget.addEventListener
+	url = https://gist.github.com/6762206.git
