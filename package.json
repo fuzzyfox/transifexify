@@ -2,6 +2,7 @@
   "name": "transifexify",
   "dependencies": {
     "colors": "~0.6.2",
-    "mime": "~1.2.11"
+    "mime": "~1.2.11",
+    "uglify-js": "~2.4.12"
   }
 }
