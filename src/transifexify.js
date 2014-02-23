@@ -21,6 +21,10 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 	 * @param  {Element} element    the Element to get textnodes from
 	 * @param  {Array}   exemptions	Array of HTMLElements to remove from search
 	 * @return {Array}              Array of text nodes
+	 *
+	 * TODO:
+	 *  + make exemptions do something ;)
+	 *  + improve the whitespace ignoring condition
 	 */
 	Transifexify.getTextNodes = function(element, exemptions){
 		var walk = document.createTreeWalker(element, window.NodeFilter.SHOW_TEXT, null, false),
@@ -108,10 +112,18 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 			return node.cloneNode();
 		},
 
+		/**
+		 * Get a copy of all the named nodes
+		 * @return {Object} a copy of the named nodes internal object
+		 */
 		getNamedNodes: function(){
 			return (JSON.parse(JSON.stringify(namedNodes)));
 		},
 
+		/**
+		 * Get a copy of all the nodes Transifexify cares about
+		 * @return {Array} array of cloned nodes
+		 */
 		getAllNodes: function(){
 			var rtn = [];
 
@@ -122,6 +134,10 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 			return rtn;
 		},
 
+		/**
+		 * Get the nunjucks template file
+		 * @return {String} HTML source for the nunjucks template
+		 */
 		getTemplateSource: function(){
 			var source = document.documentElement.innerHTML;
 
@@ -137,6 +153,10 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 			return source;
 		},
 
+		/**
+		 * Get the JSON key:value file used by Transifex/nunjucks
+		 * @return {String} JSON key:value file for document's strings
+		 */
 		getTransifexJSON: function(){
 			return JSON.stringify(this.getNamedNodes());
 		}
