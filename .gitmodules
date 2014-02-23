@@ -1,3 +1,6 @@
-[submodule "makerstrap"]
-	path = makerstrap
+[submodule "vendor/dom-TreeWalker-polyfill"]
+	path = vendor/dom-TreeWalker-polyfill
+	url = https://github.com/Krinkle/dom-TreeWalker-polyfill.git
+[submodule "vendor/makerstrap"]
+	path = vendor/makerstrap
 	url = https://github.com/mozilla/makerstrap.git
