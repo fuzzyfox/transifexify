@@ -1,3 +1,19 @@
+/**
+ * Transifexify
+ * 
+ * A small utility library for manipulating TextNodes to create nunjucks 
+ * key:value JSON files, and their associated html template files.
+ *
+ * Primarily intended to help convert static webpages into localizable 
+ * pages. i.e. Webmaker Teaching Kits + Activities
+ *
+ * @author William Duyck wduyck@mozillafoundation.org
+ * @license	Mozilla Public License, version 2.0
+ */
+
+// ------------------------------------------------------------------------- //
+
+
 var Transifexify = window.Transifexify = (function(window, document, undefined){
 
 	var Transifexify = function(selector){
