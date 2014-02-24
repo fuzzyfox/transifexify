@@ -1,4 +1,18 @@
 /* jshint multistr: true */
+
+/**
+ * Transifexify Sidebar
+ *
+ * A sidebar interface that aids in the creation of nunjucks key:value 
+ * JSON files, and their associated html template files.
+ *
+ * @author William Duyck wduyck@mozillafoundation.org
+ * @license	Mozilla Public License, version 2.0
+ */
+
+// ------------------------------------------------------------------------- //
+
+
 (function(window, document, undefined){
 	// prevent multiple instances of the sidebar
 	if(window.TransifexifySidebar){
@@ -45,6 +59,8 @@
 		form = document.querySelector('#transifexifyForm');
 
 	// Build form
+	var uniqueNodeValues = [];
+
 	T.getAllNodes().forEach(function(node, idx){
 		form.innerHTML += '<div class="form-group">\
 								<input type="text" name="node-'+idx+'" class="form-control input-md"/>\
@@ -60,6 +76,18 @@
 			var input = event.target,
 				idx = parseInt(input.name.substr(5), 10);
 			T.nameNode(idx, input.value.trim());
+
+			// brakes json output... why?
+			// // look for matching values and cascade node naming
+			// if(input.nextElementSibling.classList.contains('nodeValue')){
+			// 	Array.prototype.filter.call(form.querySelectorAll('.nodeValue'), function(element){
+			// 		if(element.innerHTML === input.nextElementSibling.innerHTML){
+			// 			element.previousElementSibling.value = input.value.trim();
+			// 			element.previousElementSibling.dataset.parent = input.name;
+			// 			T.nameNode(parseInt(element.previousElementSibling.name.substr(5), 10), input.value.trim());
+			// 		}
+			// 	});
+			// }
 		}
 	});
 	form.addEventListener('submit', function(event){

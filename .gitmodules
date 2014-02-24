@@ -7,3 +7,6 @@
 [submodule "vendor/EventTarget.addEventListener"]
 	path = vendor/EventTarget.addEventListener
 	url = https://gist.github.com/6762206.git
+[submodule "vendor/html5-dataset"]
+	path = vendor/html5-dataset
+	url = https://github.com/adalgiso/html5-dataset.git

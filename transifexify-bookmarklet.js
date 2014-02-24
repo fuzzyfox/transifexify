@@ -521,6 +521,73 @@
 
 }(window, document));
 
+/*
+@name HTML 5 dataset Support
+@version 0.0.2
+@home http://code.eligrey.com/html5/dataset/
+@author Elijah Grey - eligrey.com
+@license http://www.gnu.org/licenses/lgpl.html
+*/
+
+function toCamelCase(str)
+{
+    return str.replace(/\-./g, function(substr){ return substr.charAt(1).toUpperCase();});
+}
+
+Element.prototype.setDataAttribute = function(name, value) {
+	if ( value !== undefined ) return this.setAttribute('data-'+name, value);
+	else return this.removeDataAttribute(name);
+};
+Element.prototype.removeDataAttribute = function(name) {
+	return this.removeAttribute('data-'+name);
+};
+Element.prototype.setDataAttributes = function(items) {
+	if ( items instanceof Object ) {
+		for (attr in items) if ( items.hasOwnProperty(attr) ) this.setDataAttribute(attr, items[attr]);
+	}
+};
+if ( !Element.prototype.__lookupGetter__("dataset") ) {
+	Element.prototype.__defineGetter__("dataset", function() {
+	  try { // simulate DOMStringMap w/accessor support
+	    var getter_test = {};
+	    getter_test.__defineGetter__("test", function(){}); // test setting accessor on normal object
+	    delete getter_test;
+	    var HTML5_DOMStringMap = {};
+	  } catch(e) { var HTML5_DOMStringMap = document.createElement("div") } // use a DOM object for IE8
+	  function lambda(o) { return function(){return o} };
+	  function dataSetterFunc(ref_el, attrName) { return function(val){ return ref_el.setDataAttribute(attrName, val) } };
+	  for ( attr in this.attributes ) {
+		if ( this.attributes.hasOwnProperty(attr) && this.attributes[attr].name && /^data-[a-z_\-\d]*$/i.test(this.attributes[attr].name) ) {
+			var attrName = toCamelCase(this.attributes[attr].name.substr(5)), attrVal = this.attributes[attr].value;
+			try {
+				HTML5_DOMStringMap.__defineGetter__(attrName, lambda(attrVal || '') );
+				HTML5_DOMStringMap.__defineSetter__(attrName, dataSetterFunc(this, attrName) );
+			}
+			catch (e) { HTML5_DOMStringMap[attrName] = attrVal } // if accessors are not working
+		}
+	  }
+	  return HTML5_DOMStringMap;
+	});
+}
+
+/* global ActiveXObject */
+
+/**
+ * Transifexify
+ * 
+ * A small utility library for manipulating TextNodes to create nunjucks 
+ * key:value JSON files, and their associated html template files.
+ *
+ * Primarily intended to help convert static webpages into localizable 
+ * pages. i.e. Webmaker Teaching Kits + Activities
+ *
+ * @author William Duyck wduyck@mozillafoundation.org
+ * @license	Mozilla Public License, version 2.0
+ */
+
+// ------------------------------------------------------------------------- //
+
+
 var Transifexify = window.Transifexify = (function(window, document, undefined){
 
 	var Transifexify = function(selector){
@@ -537,6 +604,46 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		var rest = this.slice((to || from) + 1 || this.length);
 		this.length = from < 0 ? this.length + from : from;
 		return this.push.apply(this, rest);
+	};
+
+	/**
+	 * simple XHR wrapper
+	 * @param  {Object} config basic settings for the call
+	 * @return {Void}
+	 */
+	var ajax = function(config, async){
+		var xhr,
+			url = config.url,
+			method = config.method || 'GET',
+			success = config.success || function(){},
+			error = config.error || function(){};
+
+		try {
+			xhr = new XMLHttpRequest();
+		}
+		catch(e) {
+			xhr = new ActiveXObject('Msxml2.XMLHTTP');
+		}
+
+		if(typeof async === 'undefined'){
+			async = true;
+		}
+
+		xhr.onreadystatechange = function(){
+			if(xhr.readyState === 4){
+				if(xhr.status === 200){
+					success.call(null, xhr);
+				}
+				else {
+					error.call(null, xhr);
+				}
+			}
+		};
+
+		xhr.open(method, url, async);
+		xhr.send(null);
+
+		return xhr;
 	};
 
 	/**
@@ -658,20 +765,44 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		},
 
 		/**
+		 * get the original source of the current page
+		 * @return {String} html source
+		 */
+		getOriginalSource: function(){
+			var rtn = false;
+			ajax({
+				url: window.location.href,
+				success: function(xhr){
+					rtn = xhr.responseText;
+				}
+			}, false);
+
+			return rtn;
+		},
+
+		/**
 		 * Get the nunjucks template file
 		 * @return {String} HTML source for the nunjucks template
 		 */
 		getTemplateSource: function(){
+			// get rendered source
 			var source = document.documentElement.innerHTML;
 
+				// remove transifexify added sidebar if exists
 				if(document.querySelector('#transifexify')){
 					source = source.replace(document.body.innerHTML, document.querySelector('#transifexifyDocument').innerHTML);
 					source = source.replace(document.querySelector('#transifexify').outerHTML, '');
 				}
 
+				// remove transifexify from the source
 				source = source.replace(/<script(.*?)rel="transifexify"(.*?)>(.*?)<\/script>/, '');
 				source = source.replace(/<link(.*?)href="(.*?)transifexify.css"(.*?)>/, '');
-				source = '<html>' + source + '</html>';
+				
+				// get the doctype declaration.
+				var doctype = this.getOriginalSource().match(/<!DOCTYPE((.|\n|\r)*?)>/i);
+				console.log(doctype);
+
+				source = (doctype[0] || '') + '<html>' + source + '</html>';
 
 			return source;
 		},
@@ -692,6 +823,20 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 }(this, this.document));
 
 /* jshint multistr: true */
+
+/**
+ * Transifexify Sidebar
+ *
+ * A sidebar interface that aids in the creation of nunjucks key:value 
+ * JSON files, and their associated html template files.
+ *
+ * @author William Duyck wduyck@mozillafoundation.org
+ * @license	Mozilla Public License, version 2.0
+ */
+
+// ------------------------------------------------------------------------- //
+
+
 (function(window, document, undefined){
 	// prevent multiple instances of the sidebar
 	if(window.TransifexifySidebar){
@@ -738,6 +883,8 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		form = document.querySelector('#transifexifyForm');
 
 	// Build form
+	var uniqueNodeValues = [];
+
 	T.getAllNodes().forEach(function(node, idx){
 		form.innerHTML += '<div class="form-group">\
 								<input type="text" name="node-'+idx+'" class="form-control input-md"/>\
@@ -753,6 +900,18 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 			var input = event.target,
 				idx = parseInt(input.name.substr(5), 10);
 			T.nameNode(idx, input.value.trim());
+
+			// brakes json output... why?
+			// // look for matching values and cascade node naming
+			// if(input.nextElementSibling.classList.contains('nodeValue')){
+			// 	Array.prototype.filter.call(form.querySelectorAll('.nodeValue'), function(element){
+			// 		if(element.innerHTML === input.nextElementSibling.innerHTML){
+			// 			element.previousElementSibling.value = input.value.trim();
+			// 			element.previousElementSibling.dataset.parent = input.name;
+			// 			T.nameNode(parseInt(element.previousElementSibling.name.substr(5), 10), input.value.trim());
+			// 		}
+			// 	});
+			// }
 		}
 	});
 	form.addEventListener('submit', function(event){

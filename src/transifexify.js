@@ -1,3 +1,5 @@
+/* global ActiveXObject */
+
 /**
  * Transifexify
  * 
@@ -30,6 +32,46 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		var rest = this.slice((to || from) + 1 || this.length);
 		this.length = from < 0 ? this.length + from : from;
 		return this.push.apply(this, rest);
+	};
+
+	/**
+	 * simple XHR wrapper
+	 * @param  {Object} config basic settings for the call
+	 * @return {Void}
+	 */
+	var ajax = function(config, async){
+		var xhr,
+			url = config.url,
+			method = config.method || 'GET',
+			success = config.success || function(){},
+			error = config.error || function(){};
+
+		try {
+			xhr = new XMLHttpRequest();
+		}
+		catch(e) {
+			xhr = new ActiveXObject('Msxml2.XMLHTTP');
+		}
+
+		if(typeof async === 'undefined'){
+			async = true;
+		}
+
+		xhr.onreadystatechange = function(){
+			if(xhr.readyState === 4){
+				if(xhr.status === 200){
+					success.call(null, xhr);
+				}
+				else {
+					error.call(null, xhr);
+				}
+			}
+		};
+
+		xhr.open(method, url, async);
+		xhr.send(null);
+
+		return xhr;
 	};
 
 	/**
@@ -151,20 +193,44 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 		},
 
 		/**
+		 * get the original source of the current page
+		 * @return {String} html source
+		 */
+		getOriginalSource: function(){
+			var rtn = false;
+			ajax({
+				url: window.location.href,
+				success: function(xhr){
+					rtn = xhr.responseText;
+				}
+			}, false);
+
+			return rtn;
+		},
+
+		/**
 		 * Get the nunjucks template file
 		 * @return {String} HTML source for the nunjucks template
 		 */
 		getTemplateSource: function(){
+			// get rendered source
 			var source = document.documentElement.innerHTML;
 
+				// remove transifexify added sidebar if exists
 				if(document.querySelector('#transifexify')){
 					source = source.replace(document.body.innerHTML, document.querySelector('#transifexifyDocument').innerHTML);
 					source = source.replace(document.querySelector('#transifexify').outerHTML, '');
 				}
 
+				// remove transifexify from the source
 				source = source.replace(/<script(.*?)rel="transifexify"(.*?)>(.*?)<\/script>/, '');
 				source = source.replace(/<link(.*?)href="(.*?)transifexify.css"(.*?)>/, '');
-				source = '<html>' + source + '</html>';
+				
+				// get the doctype declaration.
+				var doctype = this.getOriginalSource().match(/<!DOCTYPE((.|\n|\r)*?)>/i);
+				console.log(doctype);
+
+				source = (doctype[0] || '') + '<html>' + source + '</html>';
 
 			return source;
 		},
