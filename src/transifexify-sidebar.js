@@ -28,7 +28,8 @@
 	link.href = '//' + urlParser.host + urlParser.pathname.substr(0, urlParser.pathname.lastIndexOf('/')) + '/transifexify.css';
 	link.setAttribute('rel', 'stylesheet');
 
-	document.head.insertBefore(link, document.head.firstChild);
+	// document.head.insertBefore(link, document.head.firstChild);
+	document.head.appendChild(link);
 
 	// Wrap body with custom DIV
 	document.body.innerHTML = '<div id="transifexifyDocument">' + document.body.innerHTML + '</div>';
@@ -63,7 +64,7 @@
 
 	T.getAllNodes().forEach(function(node, idx){
 		form.innerHTML += '<div class="form-group">\
-								<input type="text" name="node-'+idx+'" class="form-control input-md"/>\
+								<input type="text" name="node-'+idx+'" class="form-control"/>\
 								<div class="nodeValue">'+node.nodeValue+'</div>\
 							</div>';
 	});
