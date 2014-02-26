@@ -940,4 +940,3 @@ var Transifexify = window.Transifexify = (function(window, document, undefined){
 	});
 
 })(this, this.document);
-

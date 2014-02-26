@@ -8,7 +8,7 @@ module.exports = function(grunt) {
 					yuicompress: true
 				},
 				files: {
-					"./transifexify.css": "./transifexify.less"
+					"transifexify.css": "transifexify.less"
 				}
 			}
 		},
@@ -21,11 +21,32 @@ module.exports = function(grunt) {
 				dest: "."
 			}
 		},
+		concat: {
+			dist: {
+				src: [
+				'vendor/EventTarget.addEventListener/EventTarget.addEventListener.js',
+				'vendor/dom-TreeWalker-polyfill/src/TreeWalker-polyfill.js',
+				'vendor/html5-dataset/html5-dataset.js',
+				'src/transifexify.js',
+				'src/transifexify-sidebar.js'
+				],
+				dest: 'transifexify-bookmarklet.js',
+			},
+		},
+		uglify: {
+			options: {
+				mangle: false,
+				sourceMap: true
+			},
+			files: {
+				'transifexify-bookmarklet.min.js': ['transifexify-bookmarklet.js']
+			}
+		},
 		// running `grunt watch` will watch for changes
 		watch: {
 			less: {
-				files: "./*.less",
-				tasks: ["less"]
+				files: ["./*.less", "./src/*.js"],
+				tasks: ["less", "concat", "uglify"]
 			},
 			// prefixing: {
 			// 	files: "./teach-assets/css/*.css",
@@ -33,9 +54,11 @@ module.exports = function(grunt) {
 			// }
 		}
 	});
-	grunt.loadNpmTasks('grunt-contrib-less');
-	grunt.loadNpmTasks('grunt-contrib-watch');
-	grunt.loadNpmTasks('grunt-autoprefixer');
-	grunt.registerTask('default', ['less', 'autoprefixer']);
-	grunt.registerTask('build', ['less', 'autoprefixer']);
+grunt.loadNpmTasks('grunt-contrib-less');
+grunt.loadNpmTasks('grunt-contrib-watch');
+grunt.loadNpmTasks('grunt-autoprefixer');
+grunt.loadNpmTasks('grunt-contrib-concat');
+grunt.loadNpmTasks('grunt-contrib-uglify');
+grunt.registerTask('default', ['less', 'autoprefixer', 'uglify']);
+grunt.registerTask('build', ['less', 'autoprefixer', 'uglify']);
 };
